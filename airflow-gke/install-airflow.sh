@@ -13,6 +13,8 @@ NAMESPACE="<NAMESPACE>"
 KUBE_SA_NAME="$CLIENT-airflow-sa"
 BUCKET_NAME="$CLIENT-airflow-bucket"
 LOCATION="<REGION>"
+AIRFLOW_IMAGE_REPO="apache/airflow"
+AIRFLOW_IMAGE_TAG="2.8.4-python3.9"
 AIRFLOW_STORAGE_SIZE="5Gi"
 
 # 1. Create Bucket
@@ -83,20 +85,31 @@ EOF
 FERNET_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
 WEB_SERVER_SECRET_KEY=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 32)
 ADMIN_EMAIL="admin@example.com"
-ADMIN_PASSWORD=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 16)
+ADMIN_PASSWORD=$(echo -n "$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 16)" | base64)
 
-# 9. Install airflow
+# 9. Generate admin and airflow secrets
+kubectl apply -n $NAMESPACE -f - << EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: airflow-secrets
+  namespace: $NAMESPACE
+type: Opaque
+data:
+  AIRFLOW_ADMIN_PASSWORD: "$ADMIN_PASSWORD"
+EOF
+
+# 10. Install airflow
 helm install \
   airflow \
   airflow-stable/airflow \
   --namespace $NAMESPACE \
   --values ./airflow-community-values.yaml \
-  --set airflow.image.repository="apache/airflow" \
-  --set airflow.image.tag="2.8.4-python3.9" \
+  --set airflow.image.repository="$AIRFLOW_IMAGE_REPO" \
+  --set airflow.image.tag="$AIRFLOW_IMAGE_TAG" \
   --set fernetKey="$FERNET_KEY" \
   --set webserverSecretKey="$WEB_SERVER_SECRET_KEY" \
   --set airflow.users[0].email="$ADMIN_EMAIL" \
-  --set airflow.users[0].password="$ADMIN_PASSWORD" \
   --set dags.persistence.existingClaim="$CLIENT-airflow-pvc" \
   --set extraVolumes[0].persistentVolumeClaim.claimName="$CLIENT-airflow-pvc" \
   --set serviceAccount.name="$KUBE_SA_NAME" \

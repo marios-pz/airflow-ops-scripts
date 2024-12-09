@@ -42,10 +42,12 @@ airflow:
   ##   https://airflow.apache.org/docs/apache-airflow/stable/configurations-ref.html
   ##
   ## ____ EXAMPLE _______________
-  # config: |
-  #   AIRFLOW__API__AUTH_BACKEND = "airflow.api.auth.backend.basic_auth"
+  config:
+    AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "True"
+    AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+    AIRFLOW__API__AUTH_BACKEND: "airflow.api.auth.backend.basic_auth"
 
-  ## a list of users to create
+    ## a list of users to create
   ## - templates can ONLY be used in: `password`, `email`, `firstName`, `lastName`
   ## - templates used a bash-like syntax: ${MY_USERNAME}, $MY_USERNAME
   ## - templates are defined in `usersTemplates`
@@ -53,7 +55,8 @@ airflow:
   ##
   users:
     - username: admin
-      password: admin # NOTE: OVERWRITTEN BY CLI
+      ## use the ADMIN_PASSWORD template defined in `airflow.usersTemplates`
+      password: ${ADMIN_PASSWORD}
       role: Admin
       email: admin@example.com # NOTE: OVERWRITTEN BY CLI
       firstName: admin
@@ -74,7 +77,11 @@ airflow:
   ##       name: my-secret
   ##       key: password
   ##
-  usersTemplates: {}
+  usersTemplates:
+    ADMIN_PASSWORD:
+      kind: secret
+      name: airflow-secrets
+      key: AIRFLOW_ADMIN_PASSWORD
 
   ## if we create a Deployment to perpetually sync `airflow.users`
   ## - when `true`, users are updated in real-time, as ConfigMaps/Secrets change
@@ -1140,6 +1147,9 @@ triggerer:
   ##
   enabled: true
 
+  ## maximum number of triggers each triggerer will run at once (sets `AIRFLOW__TRIGGERER__DEFAULT_CAPACITY`)
+  capacity: 1000
+
   ## the number of triggerer Pods to run
   ## - if you set this >1 we recommend defining a `triggerer.podDisruptionBudget`
   ##
@@ -1753,8 +1763,7 @@ rbac:
 
   ## if the created RBAC Role has GET/LIST/WATCH on Secret resources
   ## - [WARNING] when true, workers/dags can read Secrets in airflow's namespace
-  ##
-  secrets: false
+  secrets: true
 
 ###################################
 ## CONFIG | Kubernetes ServiceAccount
