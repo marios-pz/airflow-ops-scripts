@@ -97,7 +97,8 @@ if kubectl get secret airflow-secrets -n "$NAMESPACE" > /dev/null 2>&1; then
   EXISTING_PASSWORD=$(kubectl get secret airflow-secrets -n "$NAMESPACE" -o jsonpath="{.data.AIRFLOW_ADMIN_PASSWORD}" | base64 --decode)
 
   if [ -n "$EXISTING_PASSWORD" ]; then
-    echo "ADMIN_PASSWORD already exists: $EXISTING_PASSWORD"
+    echo "ADMIN_PASSWORD already exists."
+    ADMIN_PASSWORD=$EXISTING_PASSWORD
   else
     echo "ADMIN_PASSWORD is empty. Generating a new one."
     ADMIN_PASSWORD=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 16 | base64)
