@@ -6,17 +6,17 @@
 # set -e # Exit immediately if any command fails
 # set -o pipefail # Catch errors in pipelines
 
-CLIENT="<CLIENT-NAME>"
-PROJECT_ID="<GOOGLE PROJECT ID>"
-PROJECT_NUMBER="<GOOGLE PROJECT NUMBER>"
-NAMESPACE="<NAMESPACE>"
+CLIENT="democlient"
+PROJECT_ID="mineral-anchor-241612"
+PROJECT_NUMBER="385165551647"
+NAMESPACE="$CLIENT-app"
 KUBE_SA_NAME="$CLIENT-airflow-sa"
 BUCKET_NAME="$CLIENT-airflow-bucket"
-LOCATION="<REGION>"
+LOCATION="europe-west3"
+
 AIRFLOW_IMAGE_REPO="apache/airflow"
 AIRFLOW_IMAGE_TAG="2.8.4-python3.9"
 AIRFLOW_STORAGE_SIZE="5Gi"
-
 
 # 1. Create Bucket
 gcloud storage buckets create gs://$BUCKET_NAME --location="$LOCATION"
@@ -53,7 +53,6 @@ spec:
   - ReadWriteMany
   capacity:
     storage: $AIRFLOW_STORAGE_SIZE
-  storageClassName: airflow-storage-class
   mountOptions:
     - implicit-dirs
   csi:
@@ -80,7 +79,6 @@ spec:
   resources:
     requests:
       storage: $AIRFLOW_STORAGE_SIZE
-  storageClassName: airflow-storage-class
 EOF
 
 FERNET_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
@@ -122,19 +120,22 @@ EOF
   echo "Secret 'airflow-secrets' created with ADMIN_PASSWORD."
 fi
 
-
 # 10. Install airflow
-helm install \
+helm upgrade --install \
   airflow \
-  airflow-stable/airflow \
+  apache-airflow/airflow \
   --namespace $NAMESPACE \
-  --values ./airflow-community-values.yaml \
-  --set airflow.image.repository="$AIRFLOW_IMAGE_REPO" \
-  --set airflow.image.tag="$AIRFLOW_IMAGE_TAG" \
-  --set airflow.fernetKey="$FERNET_KEY" \
-  --set airflow.webserverSecretKey="$WEB_SERVER_SECRET_KEY" \
-  --set airflow.users[0].email="$ADMIN_EMAIL" \
+  --values ./airflow-values.yaml \
+  --set images.airflow.repository="$AIRFLOW_IMAGE_REPO" \
+  --set images.airflow.tag="$AIRFLOW_IMAGE_TAG" \
+  --set fernetKey="$FERNET_KEY" \
+  --set webserverSecretKey="$WEB_SERVER_SECRET_KEY" \
+  --set dags.persistence.enabled=true \
   --set dags.persistence.existingClaim="$CLIENT-airflow-pvc" \
-  --set extraVolumes[0].persistentVolumeClaim.claimName="$CLIENT-airflow-pvc" \
-  --set serviceAccount.name="$KUBE_SA_NAME" \
-  --set serviceAccount.annotations."iam.gserviceaccount.com"="$KUBE_SA_NAME@$PROJECT_ID.iam.gserviceaccount.com"
+  --set-string workers.serviceAccount.name="$KUBE_SA_NAME" \
+  --set-string workers.serviceAccount.annotations."iam\.gserviceaccount\.com=$KUBE_SA_NAME@$PROJECT_ID.iam.gserviceaccount.com" \
+  --set-string scheduler.serviceAccount.name="$KUBE_SA_NAME" \
+  --set-string scheduler.serviceAccount.annotations."iam\.gserviceaccount\.com=$KUBE_SA_NAME@$PROJECT_ID.iam.gserviceaccount.com" \
+  --set-string triggerer.serviceAccount.name="$KUBE_SA_NAME" \
+  --set-string triggerer.serviceAccount.annotations."iam\.gserviceaccount\.com=$KUBE_SA_NAME@$PROJECT_ID.iam.gserviceaccount.com" \
+  --set-string "airflowPodAnnotations.gke-gcsfuse/volumes=true"
