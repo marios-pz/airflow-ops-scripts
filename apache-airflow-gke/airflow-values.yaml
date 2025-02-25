@@ -69,11 +69,109 @@ kerberos:
 flower:
   enabled: false
 
-pgbouncer:
-  enabled: false
-
 statsd:
   enabled: true
+
+# Configuration for the redis provisioned by the chart
+redis:
+  enabled: true
+  terminationGracePeriodSeconds: 600
+  persistence:
+    enabled: true
+    size: 1Gi
+
+  resources: {}
+  #  limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  #  requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+  # If set use as redis secret. Make sure to also set data.brokerUrlSecretName value.
+  passwordSecretName: ~
+
+  # Else, if password is set, create secret with it,
+  # Otherwise a new password will be generated on install
+  # Note: password can only be set during install, not upgrade.
+  password: ~
+
+  # This setting tells kubernetes that its ok to evict
+  # when it wants to scale a node down.
+  safeToEvict: true
+
+  # Set to 0 for backwards-compatiblity
+  uid: 0
+
+  # Auth secret for a private registry
+# This is used if pulling airflow images from a private registry
+registry:
+  secretName: ~ # NOTE: overwrite
+  # Example:
+  # connection:
+  #   user: ~
+  #   pass: ~
+  #   host: ~
+  #   email: ~
+  connection: {}
+
+# Elasticsearch logging configuration
+elasticsearch:
+  # Enable elasticsearch task logging
+  enabled: false
+  # A secret containing the connection
+  secretName: ~
+  # Or an object representing the connection
+  # Example:
+  # connection:
+  #   scheme: ~
+  #   user: ~
+  #   pass: ~
+  #   host: ~
+  #   port: ~
+  connection: {}
+
+# All ports used by chart
+ports:
+  flowerUI: 5555
+  airflowUI: 8080
+  workerLogs: 8793
+  triggererLogs: 8794
+  redisDB: 6379
+  statsdIngest: 9125
+  statsdScrape: 9102
+  pgbouncer: 6543
+  pgbouncerScrape: 9127
+  # rpcServer support is experimental / dev purpose only and will later be renamed
+  _rpcServer: 9080
+
+# Define any ResourceQuotas for namespace
+quotas: {}
+
+# Define default/max/min values for pods and containers in namespace
+limits: []
+
+# This runs as a CronJob to cleanup old pods.
+cleanup:
+  enabled: false
+
+# Not recommended for production
+postgresql:
+  enabled: true
+  auth:
+    enablePostgresUser: true
+    postgresPassword: postgres
+    username: ""
+    password: ""
+
+pgbouncer:
+  enabled: true
+  # The maximum number of connections to PgBouncer
+  maxClientConn: 100
+  # The maximum number of server connections to the metadata database from PgBouncer
+  metadataPoolSize: 10
+  # The maximum number of server connections to the result backend database from PgBouncer
+  resultBackendPoolSize: 5
 
 # yamllint disable rule:line-length
 config:
