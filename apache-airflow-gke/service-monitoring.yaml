@@ -1,0 +1,21 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: airflow-statsd
+  namespace: atlantis-dev
+  labels:
+    release: prometheus # This label should match the release label of your Prometheus Operator installation
+spec:
+  selector:
+    matchLabels:
+      component: statsd
+      release: airflow
+      tier: airflow
+  namespaceSelector:
+    matchNames:
+      - atlantis-dev
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics

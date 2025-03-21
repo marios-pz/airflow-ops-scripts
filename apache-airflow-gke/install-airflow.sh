@@ -15,7 +15,7 @@ BUCKET_NAME="$CLIENT-airflow-bucket"
 LOCATION="europe-west3"
 
 AIRFLOW_IMAGE_REPO="apache/airflow"
-AIRFLOW_IMAGE_TAG="2.8.4-python3.9"
+AIRFLOW_IMAGE_TAG="2.10.5"
 AIRFLOW_STORAGE_SIZE="5Gi"
 
 # 1. Create Bucket

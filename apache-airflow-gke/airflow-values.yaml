@@ -5,6 +5,7 @@ airflowHome: /opt/airflow
 # Note: fernetKey can only be set during install, not upgrade
 fernetKey: ~
 fernetKeySecretName: ~
+useStandardNaming: true # to follow fullname template
 
 # Flask secret key for Airflow Webserver: `[webserver] secret_key` in airflow.cfg
 webserverSecretKey: ~
